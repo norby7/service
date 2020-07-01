@@ -3,13 +3,17 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"github.com/pkg/errors"
 	"log"
 
 	"github.com/micro/go-micro/v2"
 	// Import the generated protobuf code
 	pb "github.com/norby7/service/proto/consignment"
+
+	vpb "github.com/norby7/vessel/proto/vessel"
 )
+
+var vesselClient vpb.VesselService
 
 type repository interface {
 	Create(*pb.Consignment) (*pb.Consignment, error)
@@ -44,12 +48,29 @@ type consignmentService struct {
 // which is a create method, which takes a context and a request as an
 // argument, these are handled by the gRPC server.
 func (s *consignmentService) CreateConsignment(ctx context.Context, req *pb.Consignment, res *pb.Response) error {
+	r,err := vesselClient.FindAvailable(context.Background(), &vpb.Specification{
+		Capacity: int32(len(req.Containers)),
+		MaxWeight: req.Weight,
+	})
+
+	if r == nil {
+		return errors.New("error fetching vessel, returned nil")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// We set the VesselId as the vessel we got back from our
+	// vessel service
+	req.VesselId = r.Vessel.Id
 
 	// Save our consignment
 	consignment, err := s.repo.Create(req)
 	if err != nil {
 		return err
 	}
+
 
 	// Return matching the `Response` message we created in our
 	// protobuf definition.
@@ -80,6 +101,8 @@ func main() {
 	if err := pb.RegisterShippingServiceHandler(service.Server(), &consignmentService{repo}); err != nil {
 		log.Panic(err)
 	}
+
+	vesselClient = vpb.NewVesselService("vessel", service.Client())
 
 	// Run the server
 	if err := service.Run(); err != nil {
