@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/micro/go-micro/v2"
@@ -84,4 +85,6 @@ func main() {
 	if err := service.Run(); err != nil {
 		log.Panic(err)
 	}
+
+	fmt.Println("Ended")
 }
