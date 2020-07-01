@@ -2,6 +2,8 @@ module github.com/norby7/service
 
 go 1.13
 
+replace github.com/norby7/service => ../service
+
 require (
 	github.com/golang/protobuf v1.4.2
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
